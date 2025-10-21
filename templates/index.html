@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="İlaç takip uygulaması - Sağlık yönetimi sistemi">
+    <meta name="theme-color" content="#0d6efd">
+
+    <title>İlaç Takip Sistemi V3 - Production</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="İlaç Takip">
+
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --success-color: #198754;
+            --warning-color: #fd7e14;
+            --danger-color: #dc3545;
+            --dark-color: #212529;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding-bottom: 80px;
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+        }
+
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 1rem;
+        }
+
+        .medication-card {
+            transition: transform 0.2s ease;
+            cursor: pointer;
+        }
+
+        .medication-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-medication-take {
+            background: linear-gradient(135deg, var(--success-color), var(--success-color));
+            border: none;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .time-slot {
+            background: white;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .time-slot-header {
+            background: linear-gradient(135deg, var(--primary-color), #0056b3);
+            color: white;
+            padding: 0.75rem 1rem;
+            margin: -1rem -1rem 1rem -1rem;
+            border-radius: 12px 12px 0 0;
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block !important;
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid #eee;
+            z-index: 1000;
+        }
+
+        .nav-container {
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 16px;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #6c757d;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item.active {
+            color: var(--primary-color);
+        }
+
+        .nav-item i {
+            font-size: 1.4rem;
+            margin-bottom: 4px;
+        }
+
+        .nav-item span {
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .alert-custom {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1050;
+            max-width: 350px;
+        }
+
+        .modal-content {
+            border: none;
+            border-radius: 12px;
+        }
+
+        .form-control {
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+        }
+
+        .btn {
+            border-radius: 8px;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), #0056b3);
+            border: none;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(13, 110, 253, 0.3);
+        }
+
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background-color: #1a1a1a;
+                color: #fff;
+            }
+
+            .card {
+                background-color: #2d2d2d;
+                color: #fff;
+            }
+
+            .bottom-nav {
+                background-color: #2d2d2d;
+                border-color: #444;
+            }
+        }
+
+        /* Mobile optimizations */
+        @media (max-width: 576px) {
+            .container {
+                padding-left: 15px;
+                padding-right: 15px;
+            }
+
+            .time-slot-header {
+                font-size: 0.9rem;
+            }
+
+            .btn {
+                font-size: 0.9rem;
+                padding: 0.5rem 1rem;
+            }
+        }
+
+        /* PWA Splash Screen */
+        .splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--primary-color), #0056b3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            color: white;
+        }
+
+        .splash-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .splash-text {
+            font-size: 1.2rem;
+            font-weight: 300;
+            margin-bottom: 2rem;
+        }
+
+        .progress-bar {
+            background: linear-gradient(90deg, #fff, #e3f2fd);
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Modal -->
+    <div class="modal fade" id="loginModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body text-center p-5">
+                    <i class="fas fa-shield-alt fa-4x text-primary mb-4"></i>
+                    <h4 class="mb-3">Güvenli Giriş</h4>
+                    <p class="text-muted mb-4">Sistemi kullanabilmek için Google hesabınızla giriş yapın</p>
+
+                    <form id="loginForm" class="mb-3">
+                        <div class="mb-3">
+                            <input type="email" class="form-control form-control-lg"
+                                   id="loginEmail" placeholder="Email adresiniz"
+                                   required autocomplete="email"
+                                   style="font-size: 1.1rem; padding: 1rem;">
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fab fa-google me-2"></i>
+                                Google ile Giriş Yap
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="alert alert-info mt-4" style="font-size: 0.9rem;">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Gizlilik:</strong> Email adresiniz sadece oturum yönetimi için kullanılır.
+                        Verileriniz güvenli PostgreSQL veritabanında saklanır.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm mb-4">
+        <div class="container">
+            <span class="navbar-brand mb-0 h1">
+                <i class="fas fa-pills text-primary me-2"></i>
+                İlaç Takip
+            </span>
+
+            <div id="navbarContent">
+                <!-- User info will be loaded here -->
+            </div>
+        </div>
+    </nav>
+
+    <div class="container" id="mainContent">
+
+        <!-- Loading State -->
+        <div id="loadingState" class="text-center py-5">
+            <div class="loading-spinner mb-3"></div>
+            <h5>İlaç takip sistemi yükleniyor...</h5>
+            <p class="text-muted">Lütfen bekleyin</p>
+        </div>
+
+        <!-- Main App Content -->
+        <div id="appContent" style="display: none;">
+
+            <!-- Current Date -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-0">Bugünkü İlaçlar</h2>
+                    <small class="text-muted" id="currentDate"></small>
+                </div>
+                <button class="btn btn-primary" onclick="showAddModal()">
+                    <i class="fas fa-plus me-2"></i>Yeni İlaç
+                </button>
+            </div>
+
+            <!-- Medications by Time Slots -->
+            <div id="medicationsList">
+                <!-- Time slots will be loaded here -->
+            </div>
+
+            <!-- Statistics Section -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-chart-line me-2"></i>
+                                Bu Hafta Özeti
+                            </h5>
+                        </div>
+                        <div class="card-body" id="weeklyStats">
+                            <!-- Stats will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" style="display: none;" class="text-center py-5">
+            <i class="fas fa-pills fa-5x text-muted mb-4"></i>
+            <h4 class="text-muted mb-3">Henüz ilaç eklenmemiş</h4>
+            <p class="text-muted mb-4">İlk ilacınızı eklemek için yukarıdaki butona tıklayın</p>
+            <button class="btn btn-primary btn-lg" onclick="showAddModal()">
+                <i class="fas fa-plus me-2"></i>İlk İlacınızı Ekleyin
+            </button>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <div class="nav-container">
+            <a class="nav-item active" onclick="showTab('medications')">
+                <i class="fas fa-pills"></i>
+                <span>İlaçlar</span>
+            </a>
+            <a class="nav-item" onclick="showTab('measurements')">
+                <i class="fas fa-heartbeat"></i>
+                <span>Ölçümler</span>
+            </a>
+            <a class="nav-item" onclick="showTab('reports')">
+                <i class="fas fa-chart-bar"></i>
+                <span>Raporlar</span>
+            </a>
+            <a class="nav-item" onclick="showTab('settings')">
+                <i class="fas fa-cog"></i>
+                <span>Ayarlar</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- Add Medication Modal -->
+    <div class="modal fade" id="addMedicationModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-plus me-2"></i>Yeni İlaç Ekle
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="medicationForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="medName" class="form-label">
+                                        <i class="fas fa-tag me-2"></i>İlaç Adı *
+                                    </label>
+                                    <input type="text" class="form-control" id="medName" required
+                                           placeholder="Parol, Aspirin vb.">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="medDosage" class="form-label">
+                                        <i class="fas fa-balance-scale me-2"></i>Doz *
+                                    </label>
+                                    <input type="text" class="form-control" id="medDosage" required
+                                           placeholder="1 tablet, 500mg, 20 damla">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="medTime" class="form-label">
+                                        <i class="fas fa-clock me-2"></i>Saat *
+                                    </label>
+                                    <input type="time" class="form-control" id="medTime" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="medPeriod" class="form-label">
+                                        <i class="fas fa-calendar-alt me-2"></i>Dönem
+                                    </label>
+                                    <select class="form-select" id="medPeriod">
+                                        <option value="daily">Her Gün</option>
+                                        <option value="weekly">Haftada Bir</option>
+                                        <option value="custom">Özel</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="medNotes" class="form-label">
+                                <i class="fas fa-sticky-note me-2"></i>Notlar
+                            </label>
+                            <textarea class="form-control" id="medNotes" rows="3"
+                                      placeholder="İlaçla ilgili hatırlatmalar, yan etkileri vb."></textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                <i class="fas fa-times me-2"></i>İptal
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <span class="loading-spinner" style="display: none;"></span>
+                                <i class="fas fa-save me-2"></i>Kaydet
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Measurement Modal -->
+    <div class="modal fade" id="measurementModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-body">
+                    <h5 class="mb-4">
+                        <i class="fas fa-heartbeat me-2 text-primary"></i>Sağlık Ölçümü Ekle
+                    </h5>
+
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <button class="btn btn-outline-primary w-100 py-3"
+                                    onclick="showMeasurementForm('blood_pressure')">
+                                <i class="fas fa-heart fa-2x mb-2"></i>
+                                <div>Tansiyon</div>
+                            </button>
+                        </div>
+                        <div class="col-6">
+                            <button class="btn btn-outline-success w-100 py-3"
+                                    onclick="showMeasurementForm('blood_sugar')">
+                                <i class="fas fa-tint fa-2x mb-2"></i>
+                                <div>Şeker</div>
+                            </button>
+                        </div>
+                        <div class="col-6">
+                            <button class="btn btn-outline-warning w-100 py-3"
+                                    onclick="showMeasurementForm('temperature')">
+                                <i class="fas fa-thermometer-half fa-2x mb-2"></i>
+                                <div>Ateş</div>
+                            </button>
+                        </div>
+                        <div class="col-6">
+                            <button class="btn btn-outline-info w-100 py-3"
+                                    onclick="showMeasurementForm('weight')">
+                                <i class="fas fa-weight fa-2x mb-2"></i>
+                                <div>Kilo</div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Main Application Script -->
+    <script>
+        // Global state
+        let currentUser = null;
+        let medications = [];
+        let measurements = [];
+        let isLoggedIn = false;
+
+        // CSRF Token
+        let csrfToken = '';
+
+        // Initialize app
+        async function initApp() {
+            showSplashScreen();
+
+            try {
+                // Get CSRF token first
+                const csrfResponse = await fetch('/api/csrf-token');
+                const csrfData = await csrfResponse.json();
+                csrfToken = csrfData.csrf_token;
+
+                // Check login status
+                await checkLoginStatus();
+
+                if (!isLoggedIn) {
+                    showLoginModal();
+                } else {
+                    await loadInitialData();
+                    hideSplashScreen();
+                    showAppContent();
+                }
+            } catch (error) {
+                console.error('Init error:', error);
+                showAlert('Uygulama başlatılırken hata oluştu', 'danger');
+                hideSplashScreen();
+            }
+        }
+
+        // Authentication
+        async function checkLoginStatus() {
+            try {
+                const response = await fetch('/api/user/status');
+                if (response.ok) {
+                    const data = await response.json();
+                    currentUser = data;
+                    isLoggedIn = true;
+                    updateUserDisplay(data);
+                } else {
+                    isLoggedIn = false;
+                }
+            } catch (error) {
+                isLoggedIn = false;
+            }
+        }
+
+        async function login(email) {
+            try {
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ email: email })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    isLoggedIn = true;
+                    currentUser = { email: email };
+                    updateUserDisplay(currentUser);
+                    hideLoginModal();
+                    await loadInitialData();
+                    showAppContent();
+                    showAlert('Başarıyla giriş yaptınız!', 'success');
+                } else {
+                    const data = await response.json();
+                    showAlert(data.error || 'Giriş yapılamadı', 'danger');
+                }
+            } catch (error) {
+                showAlert('Giriş sırasında hata oluştu', 'danger');
+            }
+        }
+
+        async function logout() {
+            try {
+                const response = await fetch('/logout');
+                if (response.ok) {
+                    isLoggedIn = false;
+                    currentUser = null;
+                    showLoginModal();
+                    hideAppContent();
+                    resetAppState();
+                    showAlert('Başarıyla çıkış yaptınız', 'info');
+                }
+            } catch (error) {
+                showAlert('Çıkış sırasında hata oluştu', 'danger');
+            }
+        }
+
+        // UI Management
+        function showSplashScreen() {
+            document.body.innerHTML = `
+                <div class="splash-screen">
+                    <div class="splash-icon">
+                        <i class="fas fa-pills"></i>
+                    </div>
+                    <div class="splash-text">İlaç Takip Sistemi</div>
+                    <div class="progress mt-3" style="width: 200px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated"
+                             style="width: 70%"></div>
+                    </div>
+                    <small class="mt-3 text-center" style="opacity: 0.8;">
+                        24/7 çalışır • Ücretsiz • Güvenli
+                    </small>
+                </div>
+            ` + document.body.innerHTML;
+        }
+
+        function hideSplashScreen() {
+            const splash = document.querySelector('.splash-screen');
+            if (splash) {
+                splash.style.animation = 'fadeOut 0.5s ease-out';
+                setTimeout(() => splash.remove(), 500);
+            }
+        }
+
+        function showAppContent() {
+            document.getElementById('appContent').style.display = 'block';
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('emptyState').style.display = 'none';
+            updateDateDisplay();
+        }
+
+        function hideAppContent() {
+            document.getElementById('appContent').style.display = 'none';
+            document.getElementById('emptyState').style.display = 'block';
+        }
+
+        function resetAppState() {
+            medications = [];
+            measurements = [];
+            document.getElementById('medicationsList').innerHTML = '';
+            document.getElementById('weeklyStats').innerHTML = '';
+        }
+
+        function updateDateDisplay() {
+            const now = new Date();
+            const options = {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            };
+            document.getElementById('currentDate').textContent =
+                now.toLocaleDateString('tr-TR', options);
+        }
+
+        function updateUserDisplay(user) {
+            const navbarContent = document.getElementById('navbarContent');
+            navbarContent.innerHTML = `
+                <span class="navbar-text me-2">
+                    <i class="fas fa-user-circle me-2"></i>
+                    ${user.email}
+                </span>
+                <button class="btn btn-outline-danger btn-sm" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            `;
+        }
+
+        function showLoginModal() {
+            const modal = new bootstrap.Modal(document.getElementById('loginModal'));
+            modal.show();
+        }
+
+        function hideLoginModal() {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+            if (modal) modal.hide();
+        }
+
+        // Alerts
+        function showAlert(message, type = 'info') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible alert-custom fade show`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+
+            document.body.appendChild(alertDiv);
+
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 5000);
+        }
+
+        // Data loading
+        async function loadInitialData() {
+            await Promise.all([
+                loadMedications(),
+                loadMeasurements(),
+                loadStats()
+            ]);
+        }
+
+        async function loadMedications() {
+            try {
+                const response = await fetch('/api/medications');
+                if (response.ok) {
+                    medications = await response.json();
+                    renderMedications();
+                } else {
+                    showAlert('İlaçlar yüklenirken hata oluştu', 'danger');
+                }
+            } catch (error) {
+                console.error('Load medications error:', error);
+                showAlert('İlaçlar yüklenirken bağlantı hatası', 'danger');
+            }
+        }
+
+        async function loadMeasurements() {
+            try {
+                const response = await fetch('/api/measurements?limit=10');
+                if (response.ok) {
+                    measurements = await response.json();
+                    // Measurements will be handled in measurement tab
+                }
+            } catch (error) {
+                console.error('Load measurements error:', error);
+            }
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                if (response.ok) {
+                    const stats = await response.json();
+                    renderStats(stats);
+                }
+            } catch (error) {
+                console.error('Load stats error:', error);
+            }
+        }
+
+        // Rendering functions
+        function renderMedications() {
+            const container = document.getElementById('medicationsList');
+
+            if (medications.length === 0) {
+                container.innerHTML = document.getElementById('emptyState').innerHTML;
+                return;
+            }
+
+            // Group by time slots
+            const timeSlots = {
+                morning: { name: 'Sabah', icon: 'sun', meds: [] },
+                noon: { name: 'Öğle', icon: 'sun', meds: [] },
+                evening: { name: 'Akşam', icon: 'moon', meds: [] },
+                night: { name: 'Gece', icon: 'moon', meds: [] }
+            };
+
+            medications.forEach(med => {
+                if (med.is_active) {
+                    const hour = new Date(`2000-01-01T${med.time}`).getHours();
+                    if (hour >= 6 && hour < 12) {
+                        timeSlots.morning.meds.push(med);
+                    } else if (hour >= 12 && hour < 17) {
+                        timeSlots.noon.meds.push(med);
+                    } else if (hour >= 17 && hour < 22) {
+                        timeSlots.evening.meds.push(med);
+                    } else {
+                        timeSlots.night.meds.push(med);
+                    }
+                }
+            });
+
+            let html = '';
+            Object.entries(timeSlots).forEach(([key, slot]) => {
+                if (slot.meds.length > 0) {
+                    html += `
+                        <div class="time-slot">
+                            <div class="time-slot-header">
+                                <i class="fas fa-${slot.icon} me-2"></i>
+                                ${slot.name} (${slot.meds.length} ilaç)
+                            </div>
+                            ${slot.meds.map(med => renderMedicationCard(med)).join('')}
+                        </div>
+                    `;
+                }
+            });
+
+            container.innerHTML = html;
+        }
+
+        function renderMedicationCard(med) {
+            const takenToday = med.last_taken ?
+                new Date(med.last_taken).toDateString() === new Date().toDateString() : false;
+
+            return `
+                <div class="medication-card card p-3 mb-2 ${takenToday ? 'border-success' : ''}" onclick="takeMedication('${med.id}')">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center mb-1">
+                                <h6 class="mb-0 me-2">${med.name}</h6>
+                                ${takenToday ? '<span class="badge bg-success">Alındı</span>' : '<span class="badge bg-warning">Bekliyor</span>'}
+                            </div>
+                            <p class="text-muted mb-1">
+                                <i class="fas fa-clock me-1"></i>${med.time}
+                                <span class="ms-2">${med.dosage}</span>
+                            </p>
+                            ${med.notes ? `<small class="text-muted">${med.notes}</small>` : ''}
+                        </div>
+                        <div class="btn-medication-take ${takenToday ? 'bg-success' : ''}" onclick="takeMedication('${med.id}')">
+                            <i class="fas fa-check text-white"></i>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderStats(stats) {
+            const container = document.getElementById('weeklyStats');
+
+            let html = '<div class="row g-3">';
+
+            stats.today_medications.forEach(med => {
+                const status = med.taken ? 'success' : 'danger';
+                const icon = med.taken ? 'check-circle' : 'times-circle';
+
+                html += `
+                    <div class="col-md-4">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <i class="fas fa-${icon} fa-2x text-${status} mb-2"></i>
+                                <h6 class="card-title">${med.name}</h6>
+                                <small class="text-muted">${med.time}</small>
+                                <div class="mt-2">
+                                    <span class="badge bg-${status}">
+                                        ${med.taken ? 'Alındı' : 'Atlandı'}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // Actions
+        function showAddModal() {
+            const modal = new bootstrap.Modal(document.getElementById('addMedicationModal'));
+            modal.show();
+        }
+
+        async function takeMedication(medId) {
+            try {
+                showLoading(true);
+                const response = await fetch('/api/take-medication', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ medication_id: medId })
+                });
+
+                if (response.ok) {
+                    await loadMedications();
+                    await loadStats();
+                    showAlert('İlaç alımınız kaydedildi!', 'success');
+                } else {
+                    const data = await response.json();
+                    showAlert(data.error || 'Hata oluştu', 'danger');
+                }
+            } catch (error) {
+                showAlert('İlaç alım kaydedilirken hata oluştu', 'danger');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function showMeasurementModal() {
+            const modal = new bootstrap.Modal(document.getElementById('measurementModal'));
+            modal.show();
+        }
+
+        function showMeasurementForm(type) {
+            let formHtml = '';
+
+            switch(type) {
+                case 'blood_pressure':
+                    formHtml = `
+                        <h6>Tansiyon Ölçümü</h6>
+                        <form id="measurementForm">
+                            <div class="row g-3">
+                                <div class="col-6">
+                                    <label class="form-label">Büyük Tansiyon (mmHg)</label>
+                                    <input type="number" class="form-control" id="systolic" placeholder="120" required>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label">Küçük Tansiyon (mmHg)</label>
+                                    <input type="number" class="form-control" id="diastolic" placeholder="80" required>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Nabız (dk)</label>
+                                    <input type="number" class="form-control" id="notes" placeholder="72">
+                                </div>
+                                <div class="col-12">
+                                    <textarea class="form-control" id="notes" rows="2" placeholder="Notlar..."></textarea>
+                                </div>
+                                <div class="col-12 text-end">
+                                    <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">İptal</button>
+                                    <button type="submit" class="btn btn-primary">Kaydet</button>
+                                </div>
+                            </div>
+                        </form>
+                    `;
+                    break;
+
+                case 'blood_sugar':
+                    formHtml = `
+                        <h6>Kan Şekeri Ölçümü</h6>
+                        <form id="measurementForm">
+                            <div class="mb-3">
+                                <label class="form-label">Şeker Değeri (mg/dL)</label>
+                                <input type="number" class="form-control" id="value" placeholder="100" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Ölçüm Zamanı</label>
+                                <select class="form-select" id="measurement_time">
+                                    <option value="fasting">Açlık</option>
+                                    <option value="after_meal">Tokluk</option>
+                                    <option value="random">Rastgele</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <textarea class="form-control" id="notes" rows="2" placeholder="Notlar..."></textarea>
+                            </div>
+                            <div class="text-end">
+                                <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">İptal</button>
+                                <button type="submit" class="btn btn-primary">Kaydet</button>
+                            </div>
+                        </form>
+                    `;
+                    break;
+
+                case 'temperature':
+                    formHtml = `
+                        <h6>Ateş Ölçümü</h6>
+                        <form id="measurementForm">
+                            <div class="mb-3">
+                                <label class="form-label">Ateş (°C)</label>
+                                <input type="number" class="form-control" step="0.1" id="value" placeholder="36.6" required>
+                            </div>
+                            <div class="mb-3">
+                                <textarea class="form-control" id="notes" rows="2" placeholder="Notlar..."></textarea>
+                            </div>
+                            <div class="text-end">
+                                <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">İptal</button>
+                                <button type="submit" class="btn btn-primary">Kaydet</button>
+                            </div>
+                        </form>
+                    `;
+                    break;
+
+                case 'weight':
+                    formHtml = `
+                        <h6>Kilo Ölçümü</h6>
+                        <form id="measurementForm">
+                            <div class="mb-3">
+                                <label class="form-label">Kilo (kg)</label>
+                                <input type="number" class="form-control" step="0.1" id="value" placeholder="70.5" required>
+                            </div>
+                            <div class="mb-3">
+                                <textarea class="form-control" id="notes" rows="2" placeholder="Notlar..."></textarea>
+                            </div>
+                            <div class="text-end">
+                                <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">İptal</button>
+                                <button type="submit" class="btn btn-primary">Kaydet</button>
+                            </div>
+                        </form>
+                    `;
+                    break;
+            }
+
+            document.querySelector('#measurementModal .modal-body').innerHTML = `
+                ${formHtml}
+            `;
+
+            // Form submission
+            const form = document.getElementById('measurementForm');
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await saveMeasurement(type);
+            });
+        }
+
+        async function saveMeasurement(type) {
+            try {
+                const formData = new FormData(document.getElementById('measurementForm'));
+                const data = Object.fromEntries(formData);
+                data.type = type;
+
+                const response = await fetch('/api/measurements', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    bootstrap.Modal.getInstance(document.getElementById('measurementModal')).hide();
+                    await loadMeasurements();
+                    showAlert('Ölçüm başarıyla kaydedildi!', 'success');
+                } else {
+                    const data = await response.json();
+                    showAlert(data.error || 'Hata oluştu', 'danger');
+                }
+            } catch (error) {
+                showAlert('Ölçüm kaydedilirken hata oluştu', 'danger');
+            }
+        }
+
+        // Tab switching
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.style.display = 'none';
+            });
+
+            // Update nav items
+            document.querySelectorAll('.nav-item').forEach(nav => {
+                nav.classList.remove('active');
+            });
+
+            // Show selected tab
+            const selectedTab = document.getElementById(tabName);
+            if (selectedTab) {
+                selectedTab.style.display = 'block';
+            }
+
+            // Update active nav
+            event.currentTarget.classList.add('active');
+
+            // Load tab content
+            switch(tabName) {
+                case 'medications':
+                    loadMedications();
+                    break;
+                case 'measurements':
+                    showMeasurementModal();
+                    break;
+                case 'reports':
+                    // Reports tab
+                    break;
+                case 'settings':
+                    // Settings tab
+                    break;
+            }
+        }
+
+        function showLoading(show) {
+            const spinner = document.querySelector('.loading-spinner');
+            if (spinner) {
+                spinner.style.display = show ? 'inline-block' : 'none';
+            }
+        }
+
+        // Form handling
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value.trim();
+            if (email) {
+                login(email);
+            }
+        });
+
+        document.getElementById('medicationForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const button = e.target.querySelector('button[type="submit"]');
+            const spinner = button.querySelector('.loading-spinner');
+            const icon = button.querySelector('i');
+
+            // Show loading
+            button.disabled = true;
+            if (spinner) spinner.style.display = 'inline-block';
+            if (icon) icon.style.display = 'none';
+            button.textContent = ' Kaydediliyor...';
+
+            try {
+                const data = {
+                    name: document.getElementById('medName').value.trim(),
+                    dosage: document.getElementById('medDosage').value.trim(),
+                    time: document.getElementById('medTime').value,
+                    period: document.getElementById('medPeriod').value,
+                    notes: document.getElementById('medNotes').value.trim()
+                };
+
+                const response = await fetch('/api/medications', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    bootstrap.Modal.getInstance(document.getElementById('addMedicationModal')).hide();
+                    await loadMedications();
+                    await loadStats();
+                    showAlert('İlaç başarıyla eklendi!', 'success');
+
+                    // Reset form
+                    this.reset();
+                } else {
+                    const errorData = await response.json();
+                    showAlert(errorData.error || 'İlaç eklenirken hata oluştu', 'danger');
+                }
+            } catch (error) {
+                showAlert('İlaç eklenirken bağlantı hatası', 'danger');
+            } finally {
+                // Hide loading
+                button.disabled = false;
+                if (spinner) spinner.style.display = 'none';
+                if (icon) icon.style.display = 'inline-block';
+                button.innerHTML = '<i class="fas fa-save me-2"></i>Kaydet';
+            }
+        });
+
+        // PWA Support
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => console.log('SW registered'))
+                    .catch(error => console.log('SW registration failed'));
+            });
+        }
+
+        // Start the app
+        document.addEventListener('DOMContentLoaded', initApp);
+
+        // Keep session alive
+        setInterval(async () => {
+            if (isLoggedIn) {
+                try {
+                    await fetch('/api/ping');
+                } catch (e) {
+                    // Ignore ping errors
+                }
+            }
+        }, 5 * 60 * 1000); // Every 5 minutes
+
+    </script>
+</body>
+</html>

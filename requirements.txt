@@ -1,0 +1,28 @@
+Flask==2.3.3
+Flask-SQLAlchemy==3.0.5
+Flask-Login==0.6.3
+Flask-WTF==1.1.1
+Flask-Migrate==4.0.5
+Flask-CORS==4.0.0
+Werkzeug==2.3.7
+Jinja2==3.1.2
+itsdangerous==2.1.2
+click==8.1.7
+
+# Database
+psycopg2-binary==2.9.7
+SQLAlchemy==2.0.23
+
+# Auth & Security
+WTForms==3.0.1
+email-validator==2.1.0
+
+# Utilities
+pytz==2023.3.post1
+python-dateutil==2.8.2
+
+# Railway için
+gunicorn==21.2.0
+
+# Development (production'da kaldırabilirsiniz)
+flask-admin==1.6.1
